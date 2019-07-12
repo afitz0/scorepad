@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
+// TODO implemet new round.
 // TODO text internationalization?
 // TODO use mediaquery for text sizing?
 // TODO bidirectional scrolling?
 // TODO extra padding around table's cells?
 // TODO what would this look like using slivers?
-// TODO
 
 void main() => runApp(MyApp());
 
@@ -90,42 +90,52 @@ class PlayerScoresState extends State<PlayerScores> {
   }
 
   Widget _buildFab() {
-    return SpeedDial(
-      closeManually: true,
-      // TODO create custom animated icon
-      animatedIcon: AnimatedIcons.menu_arrow,
-      children: [
-        SpeedDialChild(
-          child: Icon(Icons.person),
-          label: 'Player',
-          onTap: _newPlayerDialog,
-        ),
-        SpeedDialChild(
-            child: Icon(Icons.plus_one),
-            label: 'Round',
-            onTap: () {
-              this.setState(() {
-                _rounds++;
-                _scores.forEach((playerName, playerScores) {
-                  playerScores.add(0);
-                });
-              });
-            }),
-        SpeedDialChild(
-          child: Icon(Icons.refresh),
-          label: 'Restart Game',
-          onTap: () {
-            this.setState(() {
-              _scores.forEach((playerName, playerScores) {
-                _scores[playerName] = [];
-              });
-
-              _rounds = 0;
-            });
-          },
-        ),
-      ],
+    return ScorePadFab(
+      newRoundCallback: _newRoundDialog,
+      newPlayerCallback: _newPlayerDialog,
+      restartGameCallback: _restartGame,
     );
+  }
+
+  void _restartGame() {
+    this.setState(() {
+      _scores.forEach((playerName, playerScores) {
+        _scores[playerName] = [];
+      });
+
+      _rounds = 0;
+    });
+  }
+
+  void _newRoundDialog() {
+    // showDialog(
+    //     context: this.context,
+    //     builder: (context) {
+    //       return AlertDialog(
+    //         title: Text("Enter new player's name"),
+    //         content: TextFormField(
+    //           decoration: InputDecoration(
+    //             hintText: "New Player Name",
+    //             labelText: "New Player Name",
+    //           ),
+    //           autofocus: true,
+    //           autovalidate: true,
+    //           validator: _validatePlayerName,
+    //           onFieldSubmitted: _handleNewPlayerInput,
+    //           controller: _addPlayerTextController,
+    //           keyboardType:
+    //               TextInputType.numberWithOptions(signed: true, decimal: true),
+    //         ),
+    //         actions: <Widget>[],
+    //       );
+    //     });
+
+    this.setState(() {
+      _rounds++;
+      _scores.forEach((playerName, playerScores) {
+        playerScores.add(0);
+      });
+    });
   }
 
   Widget _buildScorePad(BuildContext context, int index) {
@@ -212,5 +222,57 @@ class PlayerScoresState extends State<PlayerScores> {
     _dialogFocus.dispose();
 
     super.dispose();
+  }
+}
+
+class ScorePadFab extends StatefulWidget {
+  final newRoundCallback;
+  final newPlayerCallback;
+  final restartGameCallback;
+
+  const ScorePadFab(
+      {Key key,
+      this.newRoundCallback,
+      this.newPlayerCallback,
+      this.restartGameCallback})
+      : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() => ScorePadFabState(
+      newRoundCallback, newPlayerCallback, restartGameCallback);
+}
+
+class ScorePadFabState extends State<ScorePadFab> {
+  final newRoundCallback;
+  final newPlayerCallback;
+  final restartGameCallback;
+
+  ScorePadFabState(
+      this.newRoundCallback, this.newPlayerCallback, this.restartGameCallback);
+
+  @override
+  Widget build(BuildContext context) {
+    return SpeedDial(
+      closeManually: true,
+      // TODO create custom animated icon
+      animatedIcon: AnimatedIcons.menu_arrow,
+      children: [
+        SpeedDialChild(
+          child: Icon(Icons.person),
+          label: 'Player',
+          onTap: newPlayerCallback,
+        ),
+        SpeedDialChild(
+          child: Icon(Icons.plus_one),
+          label: 'Round',
+          onTap: newRoundCallback,
+        ),
+        SpeedDialChild(
+          child: Icon(Icons.refresh),
+          label: 'Restart Game',
+          onTap: restartGameCallback,
+        ),
+      ],
+    );
   }
 }
