@@ -47,57 +47,6 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class ScoredGame extends StatelessWidget {
-  List<TableRow> _scores = [
-    TableRow(
-      children: <Widget>[
-        Text("Round number"),
-        Text("score"),
-        Text("score"),
-        Text("score"),
-      ],
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(title: Text("New Game")),
-        body: Table(
-          children: <TableRow>[
-            TableRow(
-              children: <Widget>[
-                Text("Round"),
-                Text("P1"),
-                Text("P2"),
-                Text("P3"),
-                Text("P4"),
-                Text("P5"),
-                Text("P6"),
-                Text("P7"),
-                Text("P8"),
-                Text("P9"),
-              ],
-            ),
-            TableRow(
-              children: <Widget>[
-                Text("Total"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-                Text("0"),
-              ],
-            ),
-          ],
-        ));
-  }
-}
-
 class PlayerScores extends StatefulWidget {
   @override
   State<StatefulWidget> createState() => PlayerScoresState();
