@@ -7,6 +7,7 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 // TODO bidirectional scrolling?
 // TODO extra padding around table's cells?
 // TODO what would this look like using slivers?
+// TODO return focus to text field on playername validation
 
 void main() => runApp(MyApp());
 
@@ -59,15 +60,11 @@ class PlayerScoresState extends State<PlayerScores> {
   // Number of rounds this game has been played. Cooresponds to the number of rows in the "table"
   int _rounds;
 
-  // Controller for the "add new player" dialog.
-  TextEditingController _addPlayerTextController;
-
   FocusNode _dialogFocus;
 
   @override
   void initState() {
     super.initState();
-    _addPlayerTextController = TextEditingController();
     _dialogFocus = FocusNode();
 
     _rounds = 0;
@@ -167,60 +164,22 @@ class PlayerScoresState extends State<PlayerScores> {
     showDialog(
         context: this.context,
         builder: (context) {
-          return AlertDialog(
-            title: Text("Enter new player's name"),
-            content: TextFormField(
-              decoration: InputDecoration(
-                hintText: "New Player Name",
-                labelText: "New Player Name",
-              ),
-              autofocus: true,
-              autovalidate: true,
-              validator: _validatePlayerName,
-              onFieldSubmitted: _handleNewPlayerInput,
-              controller: _addPlayerTextController,
-            ),
-            actions: <Widget>[
-              new FlatButton(
-                child: new Text('Cancel'),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              new FlatButton(
-                child: new Text('Add'),
-                onPressed: () =>
-                    _handleNewPlayerInput(_addPlayerTextController.text),
-              )
-            ],
+          return NewPlayerDialog(
+            addPlayerCallack: _addPlayer,
+            existingPlayerNames: _scores.keys.toList(),
           );
         });
   }
 
-  String _validatePlayerName(String proposedName) {
-    if (_scores.containsKey(proposedName)) return "Player already exists";
-    // TODO this pops error text on first open. How can we not?
-    if (proposedName.isEmpty) return "Name must not be blank";
-    return null;
-  }
-
-  void _handleNewPlayerInput(String newPlayerName) {
-    if (_validatePlayerName(newPlayerName) != null) {
-      return;
-    }
-
+  void _addPlayer(String newPlayerName) {
     this.setState(() {
       _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0];
     });
-
-    Navigator.of(this.context).pop();
-    _addPlayerTextController.clear();
   }
 
   @override
   void dispose() {
-    // Clean up the focus node when the Form is disposed.
-    _addPlayerTextController.dispose();
     _dialogFocus.dispose();
-
     super.dispose();
   }
 }
@@ -274,5 +233,85 @@ class ScorePadFabState extends State<ScorePadFab> {
         ),
       ],
     );
+  }
+}
+
+class NewPlayerDialog extends StatefulWidget {
+  final addPlayerCallack;
+  final existingPlayerNames;
+
+  const NewPlayerDialog(
+      {Key key, this.addPlayerCallack, this.existingPlayerNames})
+      : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() =>
+      NewPlayerDialogState(addPlayerCallack, existingPlayerNames);
+}
+
+class NewPlayerDialogState extends State<NewPlayerDialog> {
+  final addPlayerCallack;
+  final existingPlayerNames;
+
+  TextEditingController _addPlayerTextController;
+
+  NewPlayerDialogState(this.addPlayerCallack, this.existingPlayerNames);
+
+  @override
+  void initState() {
+    super.initState();
+    _addPlayerTextController = TextEditingController();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text("Enter new player's name"),
+      content: TextFormField(
+        decoration: InputDecoration(
+          hintText: "New Player Name",
+          labelText: "New Player Name",
+        ),
+        autofocus: true,
+        autovalidate: true,
+        validator: _validatePlayerName,
+        onFieldSubmitted: (_) => submit(),
+        controller: _addPlayerTextController,
+        textInputAction: TextInputAction.done,
+      ),
+      actions: <Widget>[
+        new FlatButton(
+          child: new Text('Cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        new FlatButton(
+          child: new Text('Add'),
+          onPressed: () => submit(),
+        )
+      ],
+    );
+  }
+
+  void submit() {
+    String proposedName = _addPlayerTextController.text;
+    if (_validatePlayerName(proposedName) == null) {
+      addPlayerCallack(proposedName);
+      _addPlayerTextController.clear();
+      Navigator.of(context).pop();
+    }
+  }
+
+  String _validatePlayerName(String proposedName) {
+    if (List.castFrom(existingPlayerNames).contains(proposedName))
+      return "Player already exists";
+    // TODO this pops error text on first open. How can we not?
+    if (proposedName.isEmpty) return "Name must not be blank";
+    return null;
+  }
+
+  @override
+  void dispose() {
+    _addPlayerTextController.dispose();
+    super.dispose();
   }
 }
