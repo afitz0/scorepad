@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
+// TODO text internationalization?
+// TODO use mediaquery for text sizing?
+// TODO bidirectional scrolling?
+// TODO extra padding around table's cells?
+// TODO what would this look like using slivers?
+// TODO
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
@@ -97,22 +104,21 @@ class PlayerScores extends StatefulWidget {
 }
 
 class PlayerScoresState extends State<PlayerScores> {
+  // The map containing each player's score list.
   var _scores;
 
-  // Number of rounds this game has been played. I.e., the number of rows in the "table"
+  // Number of rounds this game has been played. Cooresponds to the number of rows in the "table"
   int _rounds;
 
-  TextEditingController _textFieldController;
-
-  String _errorText;
+  // Controller for the "add new player" dialog.
+  TextEditingController _addPlayerTextController;
 
   FocusNode _dialogFocus;
 
   @override
   void initState() {
     super.initState();
-    _textFieldController = TextEditingController();
-    _errorText = "";
+    _addPlayerTextController = TextEditingController();
     _dialogFocus = FocusNode();
 
     _rounds = 0;
@@ -131,42 +137,46 @@ class PlayerScoresState extends State<PlayerScores> {
             scrollDirection: Axis.horizontal,
             itemCount: _scores.length + 1,
             itemBuilder: _buildScorePad),
-        floatingActionButton: SpeedDial(
-          closeManually: true,
-          // TODO create custom animated icon
-          animatedIcon: AnimatedIcons.menu_arrow,
-          children: [
-            SpeedDialChild(
-              child: Icon(Icons.person),
-              label: 'Player',
-              onTap: _newPlayerDialog,
-            ),
-            SpeedDialChild(
-                child: Icon(Icons.plus_one),
-                label: 'Round',
-                onTap: () {
-                  this.setState(() {
-                    _rounds++;
-                    _scores.forEach((playerName, playerScores) {
-                      playerScores.add(0);
-                    });
-                  });
-                }),
-            SpeedDialChild(
-              child: Icon(Icons.refresh),
-              label: 'Restart Game',
-              onTap: () {
-                this.setState(() {
-                  _scores.forEach((playerName, playerScores) {
-                    _scores[playerName] = [];
-                  });
+        floatingActionButton: _buildFab());
+  }
 
-                  _rounds = 0;
+  Widget _buildFab() {
+    return SpeedDial(
+      closeManually: true,
+      // TODO create custom animated icon
+      animatedIcon: AnimatedIcons.menu_arrow,
+      children: [
+        SpeedDialChild(
+          child: Icon(Icons.person),
+          label: 'Player',
+          onTap: _newPlayerDialog,
+        ),
+        SpeedDialChild(
+            child: Icon(Icons.plus_one),
+            label: 'Round',
+            onTap: () {
+              this.setState(() {
+                _rounds++;
+                _scores.forEach((playerName, playerScores) {
+                  playerScores.add(0);
                 });
-              },
-            ),
-          ],
-        ));
+              });
+            }),
+        SpeedDialChild(
+          child: Icon(Icons.refresh),
+          label: 'Restart Game',
+          onTap: () {
+            this.setState(() {
+              _scores.forEach((playerName, playerScores) {
+                _scores[playerName] = [];
+              });
+
+              _rounds = 0;
+            });
+          },
+        ),
+      ],
+    );
   }
 
   Widget _buildScorePad(BuildContext context, int index) {
@@ -194,43 +204,22 @@ class PlayerScoresState extends State<PlayerScores> {
     );
   }
 
-  void _handleNewPlayerInput(String newPlayerName) {
-    if (_scores.containsKey(newPlayerName)) {
-      _errorText = "Player already exists";
-      FocusScope.of(context).requestFocus(_dialogFocus);
-      return;
-    }
-
-    _errorText = "";
-
-    this.setState(() {
-      _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0];
-    });
-
-    Navigator.of(this.context).pop();
-    _textFieldController.clear();
-  }
-
   void _newPlayerDialog() {
-//    _textFieldController.addListener(_checkNameExists);
-
     showDialog(
         context: this.context,
         builder: (context) {
           return AlertDialog(
             title: Text("Enter new player's name"),
-            // TODO does using a TextFormField make error detection easier?
-            content: TextField(
-              controller: _textFieldController,
-              onSubmitted: _handleNewPlayerInput,
-              autofocus: true,
-              focusNode: _dialogFocus,
+            content: TextFormField(
               decoration: InputDecoration(
                 hintText: "New Player Name",
-                errorText: _validateName(),
-//                helperText: _errorText,
-//                helperStyle: TextStyle(color: Colors.redAccent),
+                labelText: "New Player Name",
               ),
+              autofocus: true,
+              autovalidate: true,
+              validator: _validatePlayerName,
+              onFieldSubmitted: _handleNewPlayerInput,
+              controller: _addPlayerTextController,
             ),
             actions: <Widget>[
               new FlatButton(
@@ -240,37 +229,37 @@ class PlayerScoresState extends State<PlayerScores> {
               new FlatButton(
                 child: new Text('Add'),
                 onPressed: () =>
-                    _handleNewPlayerInput(_textFieldController.text),
+                    _handleNewPlayerInput(_addPlayerTextController.text),
               )
             ],
           );
         });
   }
 
-  String _validateName() {
-    String proposedName = _textFieldController.text;
-
-    if (_scores.containsKey(proposedName)) {
-      return "Player already exists";
-    } else {
-      return "";
-    }
+  String _validatePlayerName(String proposedName) {
+    if (_scores.containsKey(proposedName)) return "Player already exists";
+    // TODO this pops error text on first open. How can we not?
+    if (proposedName.isEmpty) return "Name must not be blank";
+    return null;
   }
 
-  void _checkNameExists() {
-    String proposedName = _textFieldController.text;
-
-    if (_scores.containsKey(proposedName)) {
-      _errorText = "Player already exists";
-    } else {
-      _errorText = "";
+  void _handleNewPlayerInput(String newPlayerName) {
+    if (_validatePlayerName(newPlayerName) != null) {
+      return;
     }
+
+    this.setState(() {
+      _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0];
+    });
+
+    Navigator.of(this.context).pop();
+    _addPlayerTextController.clear();
   }
 
   @override
   void dispose() {
     // Clean up the focus node when the Form is disposed.
-    _textFieldController.dispose();
+    _addPlayerTextController.dispose();
     _dialogFocus.dispose();
 
     super.dispose();
