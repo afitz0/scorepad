@@ -1,14 +1,11 @@
+import 'package:bidirectional_scroll_view/bidirectional_scroll_view.dart';
 import 'package:flutter/material.dart';
 
 import 'new_round.dart';
 import 'new_player.dart';
 import 'scorepad_fab.dart';
 
-// TODO implemet new round.
-// TODO text internationalization?
-// TODO use mediaquery for text sizing?
 // TODO bidirectional scrolling?
-// TODO extra padding around table's cells?
 // TODO what would this look like using slivers?
 // TODO return focus to text field on playername validation
 // TODO allow editing past scores
@@ -16,6 +13,8 @@ import 'scorepad_fab.dart';
 // TODO save game state -- i.e., store history of games played
 // TODO add "save game" or "close and record to history"
 // TODO make order of player names matter (right now, storing in map means they're effectively unordered from user perspective)
+// TODO text internationalization?
+// TODO use mediaquery for text sizing?
 
 void main() => runApp(MyApp());
 
@@ -97,6 +96,11 @@ class PlayerScoresState extends State<PlayerScores> {
             scrollDirection: Axis.horizontal,
             itemCount: _scores.length + 1,
             itemBuilder: _buildScorePad),
+        // FIXME Why doesn't this work?
+        // body: BidirectionalScrollViewPlugin(
+        //   child: _buildScorePadFlat(),
+        //   velocityFactor: 2.0,
+        // ),
         floatingActionButton: ScorePadFab(
           newRoundCallback: _newRoundDialog,
           newPlayerCallback: _newPlayerDialog,
@@ -125,7 +129,43 @@ class PlayerScoresState extends State<PlayerScores> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(children: columnChildren),
+      child: Column(
+        children: <Widget>[
+          for (var c in columnChildren)
+            Padding(
+              padding: EdgeInsets.all(4.0),
+              child: c,
+            )
+        ],
+      ),
+    );
+  }
+
+  /*
+  An attempt at a builder for a BidirectionalScrollViewPlugin. It doesn't 
+  appear to work with a dynamic list of elements though. :( 
+  */
+  Widget _buildScorePadFlat() {
+    print("_buildScorePadFlat ");
+    List<Column> columns = <Column>[];
+
+    columns.add(Column(
+      children: <Widget>[
+        Text("Round"),
+        for (var i = 1; i <= _rounds; i++) Text("$i"),
+      ],
+    ));
+
+    for (String playerName in _scores.keys) {
+      columns.add(Column(children: <Widget>[
+        Text(playerName),
+        for (double score in _scores[playerName]) Text(score.toString()),
+      ]));
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.0),
+      child: Row(children: columns),
     );
   }
 
