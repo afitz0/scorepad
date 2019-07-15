@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 
-class NewRoundDialog extends StatefulWidget {
-  final addPlayerScoreCallback;
-  final playerName;
-  final round;
+class EnterScoreDialog extends StatefulWidget {
+  final Function(String, double, int) addPlayerScoreCallback;
+  final String playerName;
+  final int round;
 
-  const NewRoundDialog(
+  const EnterScoreDialog(
       {Key key, this.addPlayerScoreCallback, this.playerName, this.round})
       : super(key: key);
 
   @override
   State<StatefulWidget> createState() =>
-      NewRoundDialogState(addPlayerScoreCallback, playerName, round);
+      EnterScoreDialogState(addPlayerScoreCallback, playerName, round);
 }
 
-class NewRoundDialogState extends State<NewRoundDialog> {
-  final addPlayerScoreCallback;
-  final playerName;
-  final round;
+class EnterScoreDialogState extends State<EnterScoreDialog> {
+  final Function(String, double, int) addPlayerScoreCallback;
+  final String playerName;
+  final int round;
 
   TextEditingController _newScoreTextController;
 
-  NewRoundDialogState(this.addPlayerScoreCallback, this.playerName, this.round);
+  EnterScoreDialogState(this.addPlayerScoreCallback, this.playerName, this.round);
 
   @override
   void initState() {
@@ -60,7 +60,7 @@ class NewRoundDialogState extends State<NewRoundDialog> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         new FlatButton(
-          child: new Text('Add'),
+          child: new Text('Submit'),
           onPressed: () => _submit(),
         )
       ],

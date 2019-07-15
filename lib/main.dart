@@ -1,14 +1,14 @@
 import 'package:bidirectional_scroll_view/bidirectional_scroll_view.dart';
 import 'package:flutter/material.dart';
 
-import 'new_round.dart';
+import 'enter_score.dart';
 import 'new_player.dart';
 import 'scorepad_fab.dart';
 
 // TODO bidirectional scrolling?
 // TODO what would this look like using slivers?
 // TODO return focus to text field on playername validation
-// TODO allow editing past scores
+// TODO maintain textfield focus while adding scores
 // TODO show total scores
 // TODO save game state -- i.e., store history of games played
 // TODO add "save game" or "close and record to history"
@@ -114,7 +114,11 @@ class PlayerScoresState extends State<PlayerScores> {
     if (index == 0) {
       columnChildren = <Widget>[
         Text("Round"),
-        for (var i = 1; i <= _rounds; i++) Text("$i"),
+        for (var i = 1; i <= _rounds; i++)
+          Score(
+            score: i.toDouble(),
+            editable: false,
+          ),
       ];
     } else {
       var playerName = _scores.keys.toList()[index - 1];
@@ -122,21 +126,21 @@ class PlayerScoresState extends State<PlayerScores> {
 
       var playerScores = _scores[playerName];
 
-      for (var score in playerScores) {
-        columnChildren.add(Text(score.toString()));
+      for (int round = 0; round < playerScores.length; round++) {
+        double score = playerScores[round];
+        columnChildren.add(Score(
+          score: score,
+          playerName: playerName,
+          round: round + 1,
+          editCallback: _editScore,
+        ));
       }
     }
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 8.0),
       child: Column(
-        children: <Widget>[
-          for (var c in columnChildren)
-            Padding(
-              padding: EdgeInsets.all(4.0),
-              child: c,
-            )
-        ],
+        children: columnChildren,
       ),
     );
   }
@@ -146,7 +150,6 @@ class PlayerScoresState extends State<PlayerScores> {
   appear to work with a dynamic list of elements though. :( 
   */
   Widget _buildScorePadFlat() {
-    print("_buildScorePadFlat ");
     List<Column> columns = <Column>[];
 
     columns.add(Column(
@@ -187,7 +190,7 @@ class PlayerScoresState extends State<PlayerScores> {
       showDialog(
           context: this.context,
           builder: (context) {
-            return NewRoundDialog(
+            return EnterScoreDialog(
               addPlayerScoreCallback: _addPlayerScore,
               playerName: playerName,
               round: _rounds,
@@ -221,5 +224,56 @@ class PlayerScoresState extends State<PlayerScores> {
     this.setState(() {
       _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0.0];
     });
+  }
+
+  void _editScore(String playerName, int round) {
+    showDialog(
+        context: this.context,
+        builder: (context) {
+          return EnterScoreDialog(
+            addPlayerScoreCallback: _addPlayerScore,
+            playerName: playerName,
+            round: round,
+          );
+        });
+  }
+}
+
+class Score extends StatelessWidget {
+  final double score;
+  final bool editable;
+  final String playerName;
+  final int round;
+  final Function(String, int) editCallback;
+
+  final double _padding = 8.0;
+
+  const Score(
+      {Key key,
+      @required this.score,
+      this.editable = true,
+      this.editCallback,
+      this.playerName,
+      this.round})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    String scoreFormatted =
+        score.toStringAsFixed(score.truncateToDouble() == score ? 0 : 2);
+    Container scoreText = Container(
+      padding: EdgeInsets.all(_padding),
+      child: Text(scoreFormatted),
+    );
+
+    if (editable) {
+      return InkWell(
+          onTap: () {
+            editCallback(playerName, round);
+          },
+          child: scoreText);
+    } else {
+      return scoreText;
+    }
   }
 }
