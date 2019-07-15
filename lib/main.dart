@@ -75,6 +75,12 @@ class PlayerScoresState extends State<PlayerScores> {
   }
 
   @override
+  void dispose() {
+    _dialogFocus.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(title: Text("New Game")),
@@ -83,14 +89,35 @@ class PlayerScoresState extends State<PlayerScores> {
             scrollDirection: Axis.horizontal,
             itemCount: _scores.length + 1,
             itemBuilder: _buildScorePad),
-        floatingActionButton: _buildFab());
+        floatingActionButton: ScorePadFab(
+          newRoundCallback: _newRoundDialog,
+          newPlayerCallback: _newPlayerDialog,
+          restartGameCallback: _restartGame,
+        ));
   }
 
-  Widget _buildFab() {
-    return ScorePadFab(
-      newRoundCallback: _newRoundDialog,
-      newPlayerCallback: _newPlayerDialog,
-      restartGameCallback: _restartGame,
+  Widget _buildScorePad(BuildContext context, int index) {
+    List<Widget> columnChildren = <Widget>[];
+
+    if (index == 0) {
+      columnChildren = <Widget>[
+        Text("Round"),
+        for (var i = 1; i <= _rounds; i++) Text("$i"),
+      ];
+    } else {
+      var playerName = _scores.keys.toList()[index - 1];
+      columnChildren.add(Text(playerName));
+
+      var playerScores = _scores[playerName];
+
+      for (var score in playerScores) {
+        columnChildren.add(Text(score.toString()));
+      }
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 8.0),
+      child: Column(children: columnChildren),
     );
   }
 
@@ -127,6 +154,14 @@ class PlayerScoresState extends State<PlayerScores> {
     //       );
     //     });
 
+    showDialog(
+        context: this.context,
+        builder: (context) {
+          return NewRoundDialog(
+            addPlayerScoreCallback: _addPlayerScore,
+          );
+        });
+
     this.setState(() {
       _rounds++;
       _scores.forEach((playerName, playerScores) {
@@ -135,29 +170,8 @@ class PlayerScoresState extends State<PlayerScores> {
     });
   }
 
-  Widget _buildScorePad(BuildContext context, int index) {
-    List<Widget> columnChildren = <Widget>[];
-
-    if (index == 0) {
-      columnChildren = <Widget>[
-        Text("Round"),
-        for (var i = 1; i <= _rounds; i++) Text("$i"),
-      ];
-    } else {
-      var playerName = _scores.keys.toList()[index - 1];
-      columnChildren.add(Text(playerName));
-
-      var playerScores = _scores[playerName];
-
-      for (var score in playerScores) {
-        columnChildren.add(Text(score.toString()));
-      }
-    }
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.0),
-      child: Column(children: columnChildren),
-    );
+  void _addPlayerScore(String playerName, int newScore) {
+    _scores[playerName].add(newScore);
   }
 
   void _newPlayerDialog() {
@@ -165,7 +179,7 @@ class PlayerScoresState extends State<PlayerScores> {
         context: this.context,
         builder: (context) {
           return NewPlayerDialog(
-            addPlayerCallack: _addPlayer,
+            addPlayerCallback: _addPlayer,
             existingPlayerNames: _scores.keys.toList(),
           );
         });
@@ -175,12 +189,6 @@ class PlayerScoresState extends State<PlayerScores> {
     this.setState(() {
       _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0];
     });
-  }
-
-  @override
-  void dispose() {
-    _dialogFocus.dispose();
-    super.dispose();
   }
 }
 
@@ -237,30 +245,36 @@ class ScorePadFabState extends State<ScorePadFab> {
 }
 
 class NewPlayerDialog extends StatefulWidget {
-  final addPlayerCallack;
+  final addPlayerCallback;
   final existingPlayerNames;
 
   const NewPlayerDialog(
-      {Key key, this.addPlayerCallack, this.existingPlayerNames})
+      {Key key, this.addPlayerCallback, this.existingPlayerNames})
       : super(key: key);
 
   @override
   State<StatefulWidget> createState() =>
-      NewPlayerDialogState(addPlayerCallack, existingPlayerNames);
+      NewPlayerDialogState(addPlayerCallback, existingPlayerNames);
 }
 
 class NewPlayerDialogState extends State<NewPlayerDialog> {
-  final addPlayerCallack;
+  final addPlayerCallback;
   final existingPlayerNames;
 
   TextEditingController _addPlayerTextController;
 
-  NewPlayerDialogState(this.addPlayerCallack, this.existingPlayerNames);
+  NewPlayerDialogState(this.addPlayerCallback, this.existingPlayerNames);
 
   @override
   void initState() {
     super.initState();
     _addPlayerTextController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _addPlayerTextController.dispose();
+    super.dispose();
   }
 
   @override
@@ -295,7 +309,7 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
   void submit() {
     String proposedName = _addPlayerTextController.text;
     if (_validatePlayerName(proposedName) == null) {
-      addPlayerCallack(proposedName);
+      addPlayerCallback(proposedName);
       _addPlayerTextController.clear();
       Navigator.of(context).pop();
     }
@@ -308,10 +322,24 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
     if (proposedName.isEmpty) return "Name must not be blank";
     return null;
   }
+}
+
+class NewRoundDialog extends StatefulWidget {
+  final addPlayerScoreCallback;
+
+  const NewRoundDialog({Key key, this.addPlayerScoreCallback}) : super(key: key);
 
   @override
-  void dispose() {
-    _addPlayerTextController.dispose();
-    super.dispose();
+  State<StatefulWidget> createState() => NewRoundDialogState(addPlayerScoreCallback);
+}
+
+class NewRoundDialogState extends State<NewRoundDialog> {
+  final addPlayerScoreCallback;
+
+  NewRoundDialogState(this.addPlayerScoreCallback);
+
+  @override
+  Widget build(BuildContext context) {
+    return null;
   }
 }
