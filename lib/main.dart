@@ -8,6 +8,11 @@ import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 // TODO extra padding around table's cells?
 // TODO what would this look like using slivers?
 // TODO return focus to text field on playername validation
+// TODO allow editing past scores
+// TODO show total scores
+// TODO save game state -- i.e., store history of games played
+// TODO add "save game" or "close and record to history"
+// TODO make order of player names matter (right now, storing in map means they're effectively unordered from user perspective)
 
 void main() => runApp(MyApp());
 
@@ -55,7 +60,7 @@ class PlayerScores extends StatefulWidget {
 
 class PlayerScoresState extends State<PlayerScores> {
   // The map containing each player's score list.
-  var _scores;
+  Map<String, List<double>> _scores;
 
   // Number of rounds this game has been played. Cooresponds to the number of rows in the "table"
   int _rounds;
@@ -132,46 +137,30 @@ class PlayerScoresState extends State<PlayerScores> {
   }
 
   void _newRoundDialog() {
-    // showDialog(
-    //     context: this.context,
-    //     builder: (context) {
-    //       return AlertDialog(
-    //         title: Text("Enter new player's name"),
-    //         content: TextFormField(
-    //           decoration: InputDecoration(
-    //             hintText: "New Player Name",
-    //             labelText: "New Player Name",
-    //           ),
-    //           autofocus: true,
-    //           autovalidate: true,
-    //           validator: _validatePlayerName,
-    //           onFieldSubmitted: _handleNewPlayerInput,
-    //           controller: _addPlayerTextController,
-    //           keyboardType:
-    //               TextInputType.numberWithOptions(signed: true, decimal: true),
-    //         ),
-    //         actions: <Widget>[],
-    //       );
-    //     });
+    // New round
+    _rounds++;
 
-    showDialog(
-        context: this.context,
-        builder: (context) {
-          return NewRoundDialog(
-            addPlayerScoreCallback: _addPlayerScore,
-          );
-        });
-
-    this.setState(() {
-      _rounds++;
-      _scores.forEach((playerName, playerScores) {
-        playerScores.add(0);
-      });
-    });
+    for (String playerName in _scores.keys) {
+      showDialog(
+          context: this.context,
+          builder: (context) {
+            return NewRoundDialog(
+              addPlayerScoreCallback: _addPlayerScore,
+              playerName: playerName,
+              round: _rounds,
+            );
+          });
+    }
   }
 
-  void _addPlayerScore(String playerName, int newScore) {
-    _scores[playerName].add(newScore);
+  void _addPlayerScore(String playerName, double newScore, int round) {
+    this.setState(() {
+      if (_scores[playerName].length < round) {
+        _scores[playerName].add(newScore);
+      } else {
+        _scores[playerName][round - 1] = newScore;
+      }
+    });
   }
 
   void _newPlayerDialog() {
@@ -187,7 +176,7 @@ class PlayerScoresState extends State<PlayerScores> {
 
   void _addPlayer(String newPlayerName) {
     this.setState(() {
-      _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0];
+      _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0.0];
     });
   }
 }
@@ -288,8 +277,9 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
         ),
         autofocus: true,
         autovalidate: true,
+        autocorrect: false,
         validator: _validatePlayerName,
-        onFieldSubmitted: (_) => submit(),
+        onFieldSubmitted: (_) => _submit(),
         controller: _addPlayerTextController,
         textInputAction: TextInputAction.done,
       ),
@@ -300,13 +290,13 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
         ),
         new FlatButton(
           child: new Text('Add'),
-          onPressed: () => submit(),
+          onPressed: () => _submit(),
         )
       ],
     );
   }
 
-  void submit() {
+  void _submit() {
     String proposedName = _addPlayerTextController.text;
     if (_validatePlayerName(proposedName) == null) {
       addPlayerCallback(proposedName);
@@ -326,20 +316,89 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
 
 class NewRoundDialog extends StatefulWidget {
   final addPlayerScoreCallback;
+  final playerName;
+  final round;
 
-  const NewRoundDialog({Key key, this.addPlayerScoreCallback}) : super(key: key);
+  const NewRoundDialog(
+      {Key key, this.addPlayerScoreCallback, this.playerName, this.round})
+      : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => NewRoundDialogState(addPlayerScoreCallback);
+  State<StatefulWidget> createState() =>
+      NewRoundDialogState(addPlayerScoreCallback, playerName, round);
 }
 
 class NewRoundDialogState extends State<NewRoundDialog> {
   final addPlayerScoreCallback;
+  final playerName;
+  final round;
 
-  NewRoundDialogState(this.addPlayerScoreCallback);
+  TextEditingController _newScoreTextController;
+
+  NewRoundDialogState(this.addPlayerScoreCallback, this.playerName, this.round);
+
+  @override
+  void initState() {
+    super.initState();
+    _newScoreTextController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _newScoreTextController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text("Enter $playerName's score for round $round"),
+      content: TextFormField(
+        decoration: InputDecoration(
+          hintText: "0.0",
+          labelText: "$playerName's score",
+        ),
+        autofocus: true,
+        autovalidate: true,
+        autocorrect: false,
+        validator: _validateNewScore,
+        onFieldSubmitted: (_) => _submit(),
+        controller: _newScoreTextController,
+        textInputAction: TextInputAction.done,
+        keyboardType:
+            TextInputType.numberWithOptions(signed: true, decimal: true),
+      ),
+      actions: <Widget>[
+        new FlatButton(
+          child: new Text('Cancel'),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        new FlatButton(
+          child: new Text('Add'),
+          onPressed: () => _submit(),
+        )
+      ],
+    );
+  }
+
+  String _validateNewScore(String input) {
+    // Allow blank input as a score of zero
+    if (input == null || input.isEmpty) input = "0";
+    if (double.tryParse(input) == null) return "Score must be a number";
     return null;
+  }
+
+  void _submit() {
+    String newScoreStr = _newScoreTextController.text;
+
+    if (newScoreStr == null || newScoreStr.isEmpty) {
+      newScoreStr = "0";
+    }
+
+    double newScore = double.parse(newScoreStr);
+
+    addPlayerScoreCallback(playerName, newScore, round);
+    _newScoreTextController.clear();
+    Navigator.of(context).pop();
   }
 }
