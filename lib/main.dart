@@ -60,6 +60,7 @@ class PlayerScores extends StatefulWidget {
   State<StatefulWidget> createState() => PlayerScoresState();
 }
 
+// TODO does this "state" class do too much? 
 class PlayerScoresState extends State<PlayerScores> {
   // The map containing each player's score list.
   Map<String, List<double>> _scores;
@@ -239,6 +240,7 @@ class PlayerScoresState extends State<PlayerScores> {
   }
 }
 
+// TODO (to learn?) does this need to be a stateful widget?
 class Score extends StatelessWidget {
   final double score;
   final bool editable;
