@@ -9,12 +9,12 @@ import 'scorepad_fab.dart';
 // TODO what would this look like using slivers?
 // TODO return focus to text field on playername validation
 // TODO maintain textfield focus while adding scores
-// TODO show total scores
 // TODO save game state -- i.e., store history of games played
 // TODO add "save game" or "close and record to history"
 // TODO make order of player names matter (right now, storing in map means they're effectively unordered from user perspective)
 // TODO text internationalization?
 // TODO use mediaquery for text sizing?
+// TODO fix issue when list reaches bottom of screen (currently ~ 30 rounds, depending on screen size.)
 
 void main() => runApp(MyApp());
 
@@ -60,7 +60,7 @@ class PlayerScores extends StatefulWidget {
   State<StatefulWidget> createState() => PlayerScoresState();
 }
 
-// TODO does this "state" class do too much? 
+// TODO does this "state" class do too much?
 class PlayerScoresState extends State<PlayerScores> {
   // The map containing each player's score list.
   Map<String, List<double>> _scores;
@@ -115,20 +115,27 @@ class PlayerScoresState extends State<PlayerScores> {
     if (index == 0) {
       columnChildren = <Widget>[
         Text("Round"),
-        for (var i = 1; i <= _rounds; i++)
+        for (int i = 1; i <= _rounds; i++)
           Score(
             score: i.toDouble(),
             editable: false,
           ),
+        Container(
+          padding: EdgeInsets.all(8.0),
+          child: Text("Total", style: TextStyle(fontWeight: FontWeight.bold),),
+        ),
       ];
     } else {
-      var playerName = _scores.keys.toList()[index - 1];
+      String playerName = _scores.keys.toList()[index - 1];
       columnChildren.add(Text(playerName));
 
-      var playerScores = _scores[playerName];
+      List<double> playerScores = _scores[playerName];
+      double totalScore = 0.0;
 
       for (int round = 0; round < playerScores.length; round++) {
         double score = playerScores[round];
+        totalScore += score;
+
         columnChildren.add(Score(
           score: score,
           playerName: playerName,
@@ -136,6 +143,12 @@ class PlayerScoresState extends State<PlayerScores> {
           editCallback: _editScore,
         ));
       }
+
+      columnChildren.add(Score(
+        score: totalScore,
+        editable: false,
+        textStyle: TextStyle(fontWeight: FontWeight.bold),
+      ));
     }
 
     return Padding(
@@ -156,7 +169,7 @@ class PlayerScoresState extends State<PlayerScores> {
     columns.add(Column(
       children: <Widget>[
         Text("Round"),
-        for (var i = 1; i <= _rounds; i++) Text("$i"),
+        for (int i = 1; i <= _rounds; i++) Text("$i"),
       ],
     ));
 
@@ -223,7 +236,7 @@ class PlayerScoresState extends State<PlayerScores> {
 
   void _addPlayer(String newPlayerName) {
     this.setState(() {
-      _scores[newPlayerName] = [for (var i = 0; i < _rounds; i++) 0.0];
+      _scores[newPlayerName] = [for (int i = 0; i < _rounds; i++) 0.0];
     });
   }
 
@@ -247,6 +260,7 @@ class Score extends StatelessWidget {
   final String playerName;
   final int round;
   final Function(String, int) editCallback;
+  final TextStyle textStyle;
 
   final double _padding = 8.0;
 
@@ -256,7 +270,8 @@ class Score extends StatelessWidget {
       this.editable = true,
       this.editCallback,
       this.playerName,
-      this.round})
+      this.round, 
+      this.textStyle})
       : super(key: key);
 
   @override
@@ -265,7 +280,7 @@ class Score extends StatelessWidget {
         score.toStringAsFixed(score.truncateToDouble() == score ? 0 : 2);
     Container scoreText = Container(
       padding: EdgeInsets.all(_padding),
-      child: Text(scoreFormatted),
+      child: Text(scoreFormatted, style: textStyle),
     );
 
     if (editable) {
