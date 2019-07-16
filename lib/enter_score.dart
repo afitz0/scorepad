@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
 
+import 'player.dart';
+
 class EnterScoreDialog extends StatefulWidget {
-  final Function(String, double, int) addPlayerScoreCallback;
-  final String playerName;
+  final Function(Player, double, int) addPlayerScoreCallback;
+  final Player player;
   final int round;
 
   const EnterScoreDialog(
-      {Key key, this.addPlayerScoreCallback, this.playerName, this.round})
+      {Key key, this.addPlayerScoreCallback, this.player, this.round})
       : super(key: key);
 
   @override
   State<StatefulWidget> createState() =>
-      EnterScoreDialogState(addPlayerScoreCallback, playerName, round);
+      EnterScoreDialogState(addPlayerScoreCallback, player, round);
 }
 
 class EnterScoreDialogState extends State<EnterScoreDialog> {
-  final Function(String, double, int) addPlayerScoreCallback;
-  final String playerName;
+  final Function(Player, double, int) addPlayerScoreCallback;
+  final Player player;
   final int round;
 
   TextEditingController _newScoreTextController;
 
-  EnterScoreDialogState(this.addPlayerScoreCallback, this.playerName, this.round);
+  EnterScoreDialogState(this.addPlayerScoreCallback, this.player, this.round);
 
   @override
   void initState() {
@@ -38,11 +40,11 @@ class EnterScoreDialogState extends State<EnterScoreDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text("Enter $playerName's score for round $round"),
+      title: Text("Enter ${player.name}'s score for round $round"),
       content: TextFormField(
         decoration: InputDecoration(
           hintText: "0.0",
-          labelText: "$playerName's score",
+          labelText: "${player.name}'s score",
         ),
         autofocus: true,
         autovalidate: true,
@@ -57,7 +59,7 @@ class EnterScoreDialogState extends State<EnterScoreDialog> {
       actions: <Widget>[
         new FlatButton(
           child: new Text('Cancel'),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.of(context, rootNavigator: true).pop(true),
         ),
         new FlatButton(
           child: new Text('Submit'),
@@ -83,8 +85,8 @@ class EnterScoreDialogState extends State<EnterScoreDialog> {
 
     double newScore = double.parse(newScoreStr);
 
-    addPlayerScoreCallback(playerName, newScore, round);
+    addPlayerScoreCallback(player, newScore, round);
     _newScoreTextController.clear();
-    Navigator.of(context).pop();
+    Navigator.of(context, rootNavigator: true).pop(false);
   }
 }

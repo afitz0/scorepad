@@ -1,17 +1,14 @@
 import 'package:bidirectional_scroll_view/bidirectional_scroll_view.dart';
 import 'package:flutter/material.dart';
 
+import 'player.dart';
 import 'enter_score.dart';
 import 'new_player.dart';
 import 'scorepad_fab.dart';
 
 // TODO bidirectional scrolling?
 // TODO what would this look like using slivers?
-// TODO return focus to text field on playername validation
-// TODO maintain textfield focus while adding scores
 // TODO save game state -- i.e., store history of games played
-// TODO add "save game" or "close and record to history"
-// TODO make order of player names matter (right now, storing in map means they're effectively unordered from user perspective)
 // TODO text internationalization?
 // TODO use mediaquery for text sizing?
 // TODO fix issue when list reaches bottom of screen (currently ~ 30 rounds, depending on screen size.)
@@ -63,10 +60,10 @@ class PlayerScores extends StatefulWidget {
 // TODO does this "state" class do too much?
 class PlayerScoresState extends State<PlayerScores> {
   // The map containing each player's score list.
-  Map<String, List<double>> _scores;
+  List<Player> _players;
 
   // Number of rounds this game has been played. Cooresponds to the number of rows in the "table"
-  int _rounds;
+  int _roundsPlayed;
 
   FocusNode _dialogFocus;
 
@@ -75,11 +72,8 @@ class PlayerScoresState extends State<PlayerScores> {
     super.initState();
     _dialogFocus = FocusNode();
 
-    _rounds = 0;
-    _scores = {
-      // TODO what if multiple players have same name??
-      // Player Name  :  [scores]
-    };
+    _roundsPlayed = 0;
+    _players = <Player>[];
   }
 
   @override
@@ -95,7 +89,7 @@ class PlayerScoresState extends State<PlayerScores> {
         body: ListView.builder(
             padding: EdgeInsets.all(8.0),
             scrollDirection: Axis.horizontal,
-            itemCount: _scores.length + 1,
+            itemCount: _players.length + 1,
             itemBuilder: _buildScorePad),
         // FIXME Why doesn't this work?
         // body: BidirectionalScrollViewPlugin(
@@ -115,37 +109,35 @@ class PlayerScoresState extends State<PlayerScores> {
     if (index == 0) {
       columnChildren = <Widget>[
         Text("Round"),
-        for (int i = 1; i <= _rounds; i++)
+        for (int i = 1; i <= _roundsPlayed; i++)
           Score(
             score: i.toDouble(),
             editable: false,
           ),
         Container(
           padding: EdgeInsets.all(8.0),
-          child: Text("Total", style: TextStyle(fontWeight: FontWeight.bold),),
+          child: Text(
+            "Total",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ];
     } else {
-      String playerName = _scores.keys.toList()[index - 1];
+      Player player = _players[index - 1];
+      String playerName = player.name;
       columnChildren.add(Text(playerName));
 
-      List<double> playerScores = _scores[playerName];
-      double totalScore = 0.0;
-
-      for (int round = 0; round < playerScores.length; round++) {
-        double score = playerScores[round];
-        totalScore += score;
-
+      for (int round = 1; round <= _roundsPlayed; round++) {
         columnChildren.add(Score(
-          score: score,
-          playerName: playerName,
-          round: round + 1,
+          score: player.getScore(round),
+          player: player,
+          round: round,
           editCallback: _editScore,
         ));
       }
 
       columnChildren.add(Score(
-        score: totalScore,
+        score: player.getTotalScore(),
         editable: false,
         textStyle: TextStyle(fontWeight: FontWeight.bold),
       ));
@@ -169,14 +161,20 @@ class PlayerScoresState extends State<PlayerScores> {
     columns.add(Column(
       children: <Widget>[
         Text("Round"),
-        for (int i = 1; i <= _rounds; i++) Text("$i"),
+        for (int i = 1; i <= _roundsPlayed; i++) Text("$i"),
       ],
     ));
 
-    for (String playerName in _scores.keys) {
+    for (Player player in _players) {
       columns.add(Column(children: <Widget>[
-        Text(playerName),
-        for (double score in _scores[playerName]) Text(score.toString()),
+        Text(player.name),
+        for (int round = 1; round <= _roundsPlayed; round++)
+          Score(
+            score: player.getScore(round),
+            player: player,
+            round: round,
+            editCallback: _editScore,
+          ),
       ]));
     }
 
@@ -188,38 +186,40 @@ class PlayerScoresState extends State<PlayerScores> {
 
   void _restartGame() {
     this.setState(() {
-      _scores.forEach((playerName, playerScores) {
-        _scores[playerName] = [];
+      _players.forEach((p) {
+        p.reset();
       });
 
-      _rounds = 0;
+      _roundsPlayed = 0;
     });
   }
 
-  void _newRoundDialog() {
+  void _newRoundDialog() async {
     // New round
-    _rounds++;
+    _roundsPlayed++;
 
-    for (String playerName in _scores.keys) {
-      showDialog(
-          context: this.context,
-          builder: (context) {
-            return EnterScoreDialog(
-              addPlayerScoreCallback: _addPlayerScore,
-              playerName: playerName,
-              round: _rounds,
-            );
-          });
+    for (Player player in _players) {
+      bool dialogCanceled = await _showEditScoreDialog(player);
+
+      if (dialogCanceled == null || dialogCanceled) break;
     }
   }
 
-  void _addPlayerScore(String playerName, double newScore, int round) {
+  Future<bool> _showEditScoreDialog(Player player) async {
+    return showDialog<bool>(
+        context: this.context,
+        builder: (context) {
+          return EnterScoreDialog(
+            addPlayerScoreCallback: _addPlayerScore,
+            player: player,
+            round: _roundsPlayed,
+          );
+        });
+  }
+
+  void _addPlayerScore(Player player, double newScore, int round) {
     this.setState(() {
-      if (_scores[playerName].length < round) {
-        _scores[playerName].add(newScore);
-      } else {
-        _scores[playerName][round - 1] = newScore;
-      }
+      _players[player.id].addScore(score: newScore, round: round);
     });
   }
 
@@ -229,24 +229,26 @@ class PlayerScoresState extends State<PlayerScores> {
         builder: (context) {
           return NewPlayerDialog(
             addPlayerCallback: _addPlayer,
-            existingPlayerNames: _scores.keys.toList(),
           );
         });
   }
 
   void _addPlayer(String newPlayerName) {
     this.setState(() {
-      _scores[newPlayerName] = [for (int i = 0; i < _rounds; i++) 0.0];
+      _players.add(Player(
+          name: newPlayerName,
+          firstRound: _roundsPlayed + 1,
+          id: _players.length));
     });
   }
 
-  void _editScore(String playerName, int round) {
+  void _editScore(Player player, int round) {
     showDialog(
         context: this.context,
         builder: (context) {
           return EnterScoreDialog(
             addPlayerScoreCallback: _addPlayerScore,
-            playerName: playerName,
+            player: player,
             round: round,
           );
         });
@@ -257,9 +259,9 @@ class PlayerScoresState extends State<PlayerScores> {
 class Score extends StatelessWidget {
   final double score;
   final bool editable;
-  final String playerName;
+  final Player player;
   final int round;
-  final Function(String, int) editCallback;
+  final Function(Player, int) editCallback;
   final TextStyle textStyle;
 
   final double _padding = 8.0;
@@ -269,15 +271,21 @@ class Score extends StatelessWidget {
       @required this.score,
       this.editable = true,
       this.editCallback,
-      this.playerName,
-      this.round, 
+      this.player,
+      this.round,
       this.textStyle})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    String scoreFormatted =
-        score.toStringAsFixed(score.truncateToDouble() == score ? 0 : 2);
+    String scoreFormatted;
+    if (score == null) {
+      scoreFormatted = "-";
+    } else {
+      scoreFormatted =
+          score.toStringAsFixed(score.truncateToDouble() == score ? 0 : 2);
+    }
+
     Container scoreText = Container(
       padding: EdgeInsets.all(_padding),
       child: Text(scoreFormatted, style: textStyle),
@@ -286,7 +294,7 @@ class Score extends StatelessWidget {
     if (editable) {
       return InkWell(
           onTap: () {
-            editCallback(playerName, round);
+            editCallback(player, round);
           },
           child: scoreText);
     } else {

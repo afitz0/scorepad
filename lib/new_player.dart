@@ -2,24 +2,22 @@ import 'package:flutter/material.dart';
 
 class NewPlayerDialog extends StatefulWidget {
   final addPlayerCallback;
-  final existingPlayerNames;
 
   const NewPlayerDialog(
-      {Key key, this.addPlayerCallback, this.existingPlayerNames})
+      {Key key, this.addPlayerCallback})
       : super(key: key);
 
   @override
   State<StatefulWidget> createState() =>
-      NewPlayerDialogState(addPlayerCallback, existingPlayerNames);
+      NewPlayerDialogState(addPlayerCallback);
 }
 
 class NewPlayerDialogState extends State<NewPlayerDialog> {
   final addPlayerCallback;
-  final existingPlayerNames;
 
   TextEditingController _addPlayerTextController;
 
-  NewPlayerDialogState(this.addPlayerCallback, this.existingPlayerNames);
+  NewPlayerDialogState(this.addPlayerCallback);
 
   @override
   void initState() {
@@ -73,8 +71,6 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
   }
 
   String _validatePlayerName(String proposedName) {
-    if (List.castFrom(existingPlayerNames).contains(proposedName))
-      return "Player already exists";
     // TODO this pops error text on first open. How can we not?
     if (proposedName.isEmpty) return "Name must not be blank";
     return null;
