@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 class NewPlayerDialog extends StatefulWidget {
   final addPlayerCallback;
 
-  const NewPlayerDialog(
-      {Key key, this.addPlayerCallback})
-      : super(key: key);
+  const NewPlayerDialog({Key key, this.addPlayerCallback}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() =>
@@ -16,6 +14,7 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
   final addPlayerCallback;
 
   TextEditingController _addPlayerTextController;
+  bool _userHasEditted;
 
   NewPlayerDialogState(this.addPlayerCallback);
 
@@ -23,6 +22,19 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
   void initState() {
     super.initState();
     _addPlayerTextController = TextEditingController();
+    _userHasEditted = false;
+    _addPlayerTextController.addListener(_listener);
+  }
+
+  void _listener() {
+    // On first load, listener gets called. At that time, the field is empty
+    // and no changes have been made. The  _very next_ thing the user can do is
+    // either (a) cancel/dismiss or (b) make the field not empty. However, they
+    // can in the future make it empty again, so we have to check both.
+
+    // See https://github.com/flutter/flutter/issues/18885
+    if (_addPlayerTextController.text.isEmpty && !_userHasEditted) return;
+    _userHasEditted = true;
   }
 
   @override
@@ -37,7 +49,7 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
       title: Text("Enter new player's name"),
       content: TextFormField(
         decoration: InputDecoration(
-          hintText: "New Player Name",
+          hintText: "(must not be blank)",
           labelText: "New Player Name",
         ),
         autofocus: true,
@@ -63,16 +75,17 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
 
   void _submit() {
     String proposedName = _addPlayerTextController.text;
-    if (_validatePlayerName(proposedName) == null) {
+    if (_validatePlayerName(proposedName, submitCheck: true) == null) {
       addPlayerCallback(proposedName);
       _addPlayerTextController.clear();
       Navigator.of(context).pop();
     }
   }
 
-  String _validatePlayerName(String proposedName) {
-    // TODO this pops error text on first open. How can we not?
-    if (proposedName.isEmpty) return "Name must not be blank";
+  String _validatePlayerName(String proposedName, {bool submitCheck = false}) {
+    if (_userHasEditted || submitCheck) {
+      if (proposedName.isEmpty) return "Name must not be blank";
+    }
     return null;
   }
 }
