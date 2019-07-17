@@ -12,18 +12,11 @@ class EnterScoreDialog extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<StatefulWidget> createState() =>
-      EnterScoreDialogState(addPlayerScoreCallback, player, round);
+  State<StatefulWidget> createState() => EnterScoreDialogState();
 }
 
 class EnterScoreDialogState extends State<EnterScoreDialog> {
-  final Function(Player, double, int) addPlayerScoreCallback;
-  final Player player;
-  final int round;
-
   TextEditingController _newScoreTextController;
-
-  EnterScoreDialogState(this.addPlayerScoreCallback, this.player, this.round);
 
   @override
   void initState() {
@@ -40,11 +33,12 @@ class EnterScoreDialogState extends State<EnterScoreDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text("Enter ${player.name}'s score for round $round"),
+      title:
+          Text("Enter ${widget.player.name}'s score for round ${widget.round}"),
       content: TextFormField(
         decoration: InputDecoration(
           hintText: "0.0",
-          labelText: "${player.name}'s score",
+          labelText: "${widget.player.name}'s score",
         ),
         autofocus: true,
         autovalidate: true,
@@ -85,7 +79,7 @@ class EnterScoreDialogState extends State<EnterScoreDialog> {
 
     double newScore = double.parse(newScoreStr);
 
-    addPlayerScoreCallback(player, newScore, round);
+    widget.addPlayerScoreCallback(widget.player, newScore, widget.round);
     _newScoreTextController.clear();
     Navigator.of(context, rootNavigator: true).pop(false);
   }

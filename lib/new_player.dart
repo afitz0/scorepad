@@ -6,17 +6,12 @@ class NewPlayerDialog extends StatefulWidget {
   const NewPlayerDialog({Key key, this.addPlayerCallback}) : super(key: key);
 
   @override
-  State<StatefulWidget> createState() =>
-      NewPlayerDialogState(addPlayerCallback);
+  State<StatefulWidget> createState() => NewPlayerDialogState();
 }
 
 class NewPlayerDialogState extends State<NewPlayerDialog> {
-  final addPlayerCallback;
-
   TextEditingController _addPlayerTextController;
   bool _userHasEditted;
-
-  NewPlayerDialogState(this.addPlayerCallback);
 
   @override
   void initState() {
@@ -76,7 +71,7 @@ class NewPlayerDialogState extends State<NewPlayerDialog> {
   void _submit() {
     String proposedName = _addPlayerTextController.text;
     if (_validatePlayerName(proposedName, submitCheck: true) == null) {
-      addPlayerCallback(proposedName);
+      widget.addPlayerCallback(proposedName);
       _addPlayerTextController.clear();
       Navigator.of(context).pop();
     }

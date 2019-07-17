@@ -14,18 +14,10 @@ class ScorePadFab extends StatefulWidget {
       : super(key: key);
 
   @override
-  State<StatefulWidget> createState() => ScorePadFabState(
-      newRoundCallback, newPlayerCallback, restartGameCallback);
+  State<StatefulWidget> createState() => ScorePadFabState();
 }
 
 class ScorePadFabState extends State<ScorePadFab> {
-  final newRoundCallback;
-  final newPlayerCallback;
-  final restartGameCallback;
-
-  ScorePadFabState(
-      this.newRoundCallback, this.newPlayerCallback, this.restartGameCallback);
-
   @override
   Widget build(BuildContext context) {
     return SpeedDial(
@@ -36,17 +28,17 @@ class ScorePadFabState extends State<ScorePadFab> {
         SpeedDialChild(
           child: Icon(Icons.person),
           label: 'Player',
-          onTap: newPlayerCallback,
+          onTap: widget.newPlayerCallback,
         ),
         SpeedDialChild(
           child: Icon(Icons.plus_one),
           label: 'Round',
-          onTap: newRoundCallback,
+          onTap: widget.newRoundCallback,
         ),
         SpeedDialChild(
           child: Icon(Icons.refresh),
           label: 'Restart Game',
-          onTap: restartGameCallback,
+          onTap: widget.restartGameCallback,
         ),
       ],
     );
