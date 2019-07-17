@@ -22,7 +22,7 @@ class ScorePadFabState extends State<ScorePadFab> {
   Widget build(BuildContext context) {
     return SpeedDial(
       closeManually: true,
-      // TODO create custom animated icon
+      // TODO create custom animated icon?
       animatedIcon: AnimatedIcons.menu_arrow,
       children: [
         SpeedDialChild(

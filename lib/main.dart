@@ -11,7 +11,8 @@ import 'scorepad_fab.dart';
 // TODO save game state -- i.e., store history of games played
 // TODO text internationalization?
 // TODO use mediaquery for text sizing?
-// TODO fix issue when list reaches bottom of screen (currently ~ 30 rounds, depending on screen size.)
+// TODO fix issue when list reaches bottom of screen (currently ~ 23 rounds, depending on screen size.)
+// TODO bug: when use hits back (or accidentally swipes from side of screen on ios), game is entirely lost.
 
 void main() => runApp(MyApp());
 
