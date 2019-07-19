@@ -1,4 +1,3 @@
-import 'package:bidirectional_scroll_view/bidirectional_scroll_view.dart';
 import 'package:flutter/material.dart';
 
 import 'player.dart';
@@ -30,7 +29,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  @override
+  State<StatefulWidget> createState() => HomePageState();
+}
+
+class HomePageState extends State<HomePage> {
+  bool _resumableGame = false;
+  List<Player> _previousGame;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,21 +46,46 @@ class HomePage extends StatelessWidget {
         "ScorePad",
       )),
       body: Center(
-        child: RaisedButton(
-          child: Text('New Game'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => PlayerScores()),
-            );
-          },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            RaisedButton(
+              child: Text('New Game'),
+              onPressed: () => _getGameResults(context, null),
+            ),
+            RaisedButton(
+              child: Text('Resume Game'),
+              onPressed: _resumableGame ? () => _getGameResults(context, _previousGame) : null,
+            ),
+          ],
         ),
       ),
     );
   }
+
+  void _getGameResults(BuildContext context, List<Player> previousGame) async {
+    final List<Player> _players = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PlayerScores(previousGame)),
+    );
+
+    print(_players.toString());
+
+    if (_players != null && _players.isNotEmpty) {
+      _resumableGame = true;
+      _previousGame = _players;
+    } else {
+      _resumableGame = false;
+      _previousGame = null;
+    }
+  }
 }
 
 class PlayerScores extends StatefulWidget {
+  final List<Player> previousGame;
+
+  PlayerScores(this.previousGame);
+  
   @override
   State<StatefulWidget> createState() => PlayerScoresState();
 }
@@ -74,7 +106,12 @@ class PlayerScoresState extends State<PlayerScores> {
     _dialogFocus = FocusNode();
 
     _roundsPlayed = 0;
-    _players = <Player>[];
+
+    if (widget.previousGame != null && widget.previousGame.isNotEmpty) {
+      _players = widget.previousGame;
+    } else {
+      _players = <Player>[];
+    }
   }
 
   @override
@@ -86,22 +123,26 @@ class PlayerScoresState extends State<PlayerScores> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(title: Text("New Game")),
-        body: ListView.builder(
-            padding: EdgeInsets.all(8.0),
-            scrollDirection: Axis.horizontal,
-            itemCount: _players.length + 1,
-            itemBuilder: _buildScorePad),
-        // FIXME Why doesn't this work?
-        // body: BidirectionalScrollViewPlugin(
-        //   child: _buildScorePadFlat(),
-        //   velocityFactor: 2.0,
-        // ),
-        floatingActionButton: ScorePadFab(
-          newRoundCallback: _newRoundDialog,
-          newPlayerCallback: _newPlayerDialog,
-          restartGameCallback: _restartGame,
-        ));
+      appBar: AppBar(
+        title: Text("New Game"),
+        // Override the back button so that we can return the scoresheet 
+        // (allowing resume game)
+        leading:  IconButton(
+          icon: BackButtonIcon(),
+          onPressed: () => Navigator.pop(context, _players),
+        ),
+      ),
+      body: ListView.builder(
+          padding: EdgeInsets.all(8.0),
+          scrollDirection: Axis.horizontal,
+          itemCount: _players.length + 1,
+          itemBuilder: _buildScorePad),
+      floatingActionButton: ScorePadFab(
+        newRoundCallback: _newRoundDialog,
+        newPlayerCallback: _newPlayerDialog,
+        restartGameCallback: _restartGame,
+      ),
+    );
   }
 
   Widget _buildScorePad(BuildContext context, int index) {
