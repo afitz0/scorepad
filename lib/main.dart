@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'game.dart';
 import 'player.dart';
 import 'enter_score.dart';
 import 'new_player.dart';
@@ -36,7 +37,7 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   bool _resumableGame = false;
-  List<Player> _previousGame;
+  Game _previousGame;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +64,7 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  void _getGameResults(BuildContext context, List<Player> previousGame) async {
+  void _getGameResults(BuildContext context, Game previousGame) async {
     final List<Player> _players = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => PlayerScores(previousGame)),
@@ -82,7 +83,7 @@ class HomePageState extends State<HomePage> {
 }
 
 class PlayerScores extends StatefulWidget {
-  final List<Player> previousGame;
+  final Game previousGame;
 
   PlayerScores(this.previousGame);
   
@@ -92,32 +93,12 @@ class PlayerScores extends StatefulWidget {
 
 // TODO does this "state" class do too much?
 class PlayerScoresState extends State<PlayerScores> {
-  // The map containing each player's score list.
-  List<Player> _players;
-
-  // Number of rounds this game has been played. Cooresponds to the number of rows in the "table"
-  int _roundsPlayed;
-
-  FocusNode _dialogFocus;
-
+  Game game;
+  
   @override
   void initState() {
     super.initState();
-    _dialogFocus = FocusNode();
-
-    _roundsPlayed = 0;
-
-    if (widget.previousGame != null && widget.previousGame.isNotEmpty) {
-      _players = widget.previousGame;
-    } else {
-      _players = <Player>[];
-    }
-  }
-
-  @override
-  void dispose() {
-    _dialogFocus.dispose();
-    super.dispose();
+    game = widget.previousGame ?? Game();
   }
 
   @override
@@ -129,13 +110,13 @@ class PlayerScoresState extends State<PlayerScores> {
         // (allowing resume game)
         leading:  IconButton(
           icon: BackButtonIcon(),
-          onPressed: () => Navigator.pop(context, _players),
+          onPressed: () => Navigator.pop(context, game),
         ),
       ),
       body: ListView.builder(
           padding: EdgeInsets.all(8.0),
           scrollDirection: Axis.horizontal,
-          itemCount: _players.length + 1,
+          itemCount: game.getPlayerNames().length + 1,
           itemBuilder: _buildScorePad),
       floatingActionButton: ScorePadFab(
         newRoundCallback: _newRoundDialog,
@@ -193,54 +174,15 @@ class PlayerScoresState extends State<PlayerScores> {
     );
   }
 
-  /*
-  An attempt at a builder for a BidirectionalScrollViewPlugin. It doesn't 
-  appear to work with a dynamic list of elements though. :( 
-  */
-  Widget _buildScorePadFlat() {
-    List<Column> columns = <Column>[];
-
-    columns.add(Column(
-      children: <Widget>[
-        Text("Round"),
-        for (int i = 1; i <= _roundsPlayed; i++) Text("$i"),
-      ],
-    ));
-
-    for (Player player in _players) {
-      columns.add(Column(children: <Widget>[
-        Text(player.name),
-        for (int round = 1; round <= _roundsPlayed; round++)
-          Score(
-            score: player.getScore(round),
-            player: player,
-            round: round,
-            editCallback: _editScore,
-          ),
-      ]));
-    }
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 8.0),
-      child: Row(children: columns),
-    );
-  }
-
   void _restartGame() {
-    this.setState(() {
-      _players.forEach((p) {
-        p.reset();
-      });
-
-      _roundsPlayed = 0;
-    });
+    this.setState(() =>  game.restart());
   }
 
   void _newRoundDialog() async {
     // New round
-    _roundsPlayed++;
+    game.newRound();
 
-    for (Player player in _players) {
+    for (Player player in game.players) {
       bool dialogCanceled = await _showEditScoreDialog(player);
 
       if (dialogCanceled == null || dialogCanceled) break;
