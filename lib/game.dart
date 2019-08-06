@@ -22,6 +22,10 @@ class Game {
     return playerNames;
   }
 
+  Player getPlayerByIndex(int index) {
+    return players[index];
+  }
+
   void restart() {
     for (Player player in players) {
       player.reset();
@@ -30,5 +34,11 @@ class Game {
 
   void newRound() {
     roundsPlayed++;
+  }
+
+  /// Checks to see whether we can consider this game to be "in progress"
+  /// or otherwise resumable. A game that was never played is not resumable.
+  bool isInProgress() {
+    return players.isNotEmpty;
   }
 }

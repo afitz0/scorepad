@@ -65,16 +65,14 @@ class HomePageState extends State<HomePage> {
   }
 
   void _getGameResults(BuildContext context, Game previousGame) async {
-    final List<Player> _players = await Navigator.push(
+    final Game game = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => PlayerScores(previousGame)),
     );
 
-    print(_players.toString());
-
-    if (_players != null && _players.isNotEmpty) {
+    if (game != null && game.isInProgress()) {
       _resumableGame = true;
-      _previousGame = _players;
+      _previousGame = game;
     } else {
       _resumableGame = false;
       _previousGame = null;
@@ -132,7 +130,7 @@ class PlayerScoresState extends State<PlayerScores> {
     if (index == 0) {
       columnChildren = <Widget>[
         Text("Round"),
-        for (int i = 1; i <= _roundsPlayed; i++)
+        for (int i = 1; i <= game.roundsPlayed; i++)
           Score(
             score: i.toDouble(),
             editable: false,
@@ -146,11 +144,11 @@ class PlayerScoresState extends State<PlayerScores> {
         ),
       ];
     } else {
-      Player player = _players[index - 1];
+      Player player = game.getPlayerByIndex(index - 1);
       String playerName = player.name;
       columnChildren.add(Text(playerName));
 
-      for (int round = 1; round <= _roundsPlayed; round++) {
+      for (int round = 1; round <= game.roundsPlayed; round++) {
         columnChildren.add(Score(
           score: player.getScore(round),
           player: player,
@@ -196,14 +194,14 @@ class PlayerScoresState extends State<PlayerScores> {
           return EnterScoreDialog(
             addPlayerScoreCallback: _addPlayerScore,
             player: player,
-            round: _roundsPlayed,
+            round: game.roundsPlayed,
           );
         });
   }
 
   void _addPlayerScore(Player player, double newScore, int round) {
     this.setState(() {
-      _players[player.id].addScore(score: newScore, round: round);
+      player.addScore(score: newScore, round: round);
     });
   }
 
@@ -219,10 +217,10 @@ class PlayerScoresState extends State<PlayerScores> {
 
   void _addPlayer(String newPlayerName) {
     this.setState(() {
-      _players.add(Player(
+      game.players.add(Player(
           name: newPlayerName,
-          firstRound: _roundsPlayed + 1,
-          id: _players.length));
+          firstRound: game.roundsPlayed + 1,
+          id: game.players.length));
     });
   }
 
