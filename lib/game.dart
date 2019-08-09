@@ -41,4 +41,15 @@ class Game {
   bool isInProgress() {
     return players.isNotEmpty;
   }
+
+  Map<String, dynamic> toJson() => {
+        'players': List.generate(players.length, (int index) => {
+          players[index].toJson()
+        }),
+        'roundsPlayed': roundsPlayed,
+      };
+
+  Game.fromJson(Map<String, dynamic> json)
+      : roundsPlayed = json['roundsPlayed'],
+        players = json['players'];
 }

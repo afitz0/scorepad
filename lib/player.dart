@@ -28,7 +28,7 @@ class Player {
     if (_scores.containsKey(round)) {
       _totalScore -= _scores[round];
     }
-    
+
     _scores[round] = score;
   }
 
@@ -49,4 +49,20 @@ class Player {
     _totalScore = 0;
     _scores.clear();
   }
+
+  // TODO see how this would work with code gen rather than manual
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'id': id,
+        'firstRound': firstRound,
+        'totalScore': _totalScore,
+        'scores': _scores.toString(),
+      };
+
+  Player.fromJson(Map<String, dynamic> json)
+      : name = json['name'],
+        id = json['id'],
+        firstRound = json['firstRound'],
+        _totalScore = json['totalScore'],
+        _scores = json['scores'];
 }

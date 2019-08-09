@@ -12,7 +12,6 @@ import 'scorepad_fab.dart';
 // TODO text internationalization?
 // TODO use mediaquery for text sizing?
 // TODO fix issue when list reaches bottom of screen (currently ~ 23 rounds, depending on screen size.)
-// TODO bug: when use hits back (or accidentally swipes from side of screen on ios), game is entirely lost.
 
 void main() => runApp(MyApp());
 
@@ -56,7 +55,9 @@ class HomePageState extends State<HomePage> {
             ),
             RaisedButton(
               child: Text('Resume Game'),
-              onPressed: _resumableGame ? () => _getGameResults(context, _previousGame) : null,
+              onPressed: _resumableGame
+                  ? () => _getGameResults(context, _previousGame)
+                  : null,
             ),
           ],
         ),
@@ -69,6 +70,8 @@ class HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(builder: (context) => PlayerScores(previousGame)),
     );
+
+    if (game != null) print("Game in json: ${game.toJson()}");
 
     if (game != null && game.isInProgress()) {
       _resumableGame = true;
@@ -84,7 +87,7 @@ class PlayerScores extends StatefulWidget {
   final Game previousGame;
 
   PlayerScores(this.previousGame);
-  
+
   @override
   State<StatefulWidget> createState() => PlayerScoresState();
 }
@@ -92,7 +95,7 @@ class PlayerScores extends StatefulWidget {
 // TODO does this "state" class do too much?
 class PlayerScoresState extends State<PlayerScores> {
   Game game;
-  
+
   @override
   void initState() {
     super.initState();
@@ -112,21 +115,22 @@ class PlayerScoresState extends State<PlayerScores> {
         appBar: AppBar(
           title: Text("New Game"),
           // Override the back button so that we can return the scoresheet
-        // (allowing resume game)
-        leading:  IconButton(
-          icon: BackButtonIcon(),
-          onPressed: () => Navigator.pop(context, game),
+          // (allowing resume game)
+          leading: IconButton(
+            icon: BackButtonIcon(),
+            onPressed: () => Navigator.pop(context, game),
+          ),
         ),
-      ),
-      body: ListView.builder(
-          padding: EdgeInsets.all(8.0),
-          scrollDirection: Axis.horizontal,
-          itemCount: game.getPlayerNames().length + 1,
-          itemBuilder: _buildScorePad),
-      floatingActionButton: ScorePadFab(
-        newRoundCallback: _newRoundDialog,
-        newPlayerCallback: _newPlayerDialog,
-        restartGameCallback: _restartGame,
+        body: ListView.builder(
+            padding: EdgeInsets.all(8.0),
+            scrollDirection: Axis.horizontal,
+            itemCount: game.getPlayerNames().length + 1,
+            itemBuilder: _buildScorePad),
+        floatingActionButton: ScorePadFab(
+          newRoundCallback: _newRoundDialog,
+          newPlayerCallback: _newPlayerDialog,
+          restartGameCallback: _restartGame,
+        ),
       ),
     );
   }
@@ -180,7 +184,7 @@ class PlayerScoresState extends State<PlayerScores> {
   }
 
   void _restartGame() {
-    this.setState(() =>  game.restart());
+    this.setState(() => game.restart());
   }
 
   void _newRoundDialog() async {
