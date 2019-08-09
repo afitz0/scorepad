@@ -101,10 +101,17 @@ class PlayerScoresState extends State<PlayerScores> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("New Game"),
-        // Override the back button so that we can return the scoresheet 
+    return WillPopScope(
+      onWillPop: () async {
+        if (Navigator.of(context).userGestureInProgress)
+          return false;
+        else
+          return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text("New Game"),
+          // Override the back button so that we can return the scoresheet
         // (allowing resume game)
         leading:  IconButton(
           icon: BackButtonIcon(),
